@@ -402,8 +402,6 @@
 			
 			}
 
-
-			
 			
 			console.log(SQL)			
 			
@@ -442,37 +440,13 @@
 				
 				//layerSource = new LayerDataSource();
 				//layerSource.dataSource = dataSource;
-		
-				var dynamicLayerInfos = [];
-				var dynamicLayerInfo = new aDynamicLayerInfo();
-				dynamicLayerInfo.id = 1;
-				dynamicLayerInfo.name = "FRRP";
-				
-				dataSource = new QueryDataSource();
-				dataSource.workspaceId = "frrp";
-				dataSource.geometryType = "point";
-				dataSource.query = SQL;
-				dataSource.oidFields = ["id"] 
-				dataSource.spatialReference = new SpatialReference({wkid: 3857});
-	
-				layerSource = new LayerDataSource();
-				layerSource.dataSource = dataSource;
-				dynamicLayerInfo.source = layerSource;
-				dynamicLayerInfos.push(dynamicLayerInfo);
-	
-				
-				mainlayer.setDynamicLayerInfos(dynamicLayerInfos);
-				
-				
 				adds = add.getselected();
 				
 				if (adds[0].value ==  "Site") {
 				  SYM = SimpleMarkerSymbol;
-				} else {
-				  SYM = SimpleFillSymbol;
-				}
-				
-				
+				  oSQL = SQL;
+				  geotype = "point";
+				  
 				var simpleJson = {
 				"type": "simple",
 				"label": "",
@@ -503,6 +477,65 @@
 				renderer.addBreak(5, 10, new SYM().setColor(new Color([255, 255, 0, 1])).setOutline(null).setSize("7"));
 				renderer.addBreak(10, 20, new SYM().setColor(new Color([255, 128, 0, 1])).setOutline(null).setSize("7"));
 				renderer.addBreak(20, Infinity, new SYM().setColor(new Color([255, 0, 0, 1])).setOutline(null).setSize("7"));
+				
+				} else {
+				  SYM = SimpleFillSymbol;
+				  oSQL = "SELECT ROW_NUMBER() over() as id, areas_wm_simple.subregion, sum(stab.recent_mortality) as recent_mortality, sum(stab.totalarea) as totalarea, (sum(stab.recent_mortality) / sum(stab.totalarea)) * 100 as p_recent_mortality, ST_Union(areas_wm_simple.shape) as shape from areas_wm_simple join (select * from (" + SQL;
+				  oSQL = oSQL + ") as foo) as stab on ST_Intersects(areas_wm_simple.shape, stab.shape) group by areas_wm_simple.subregion";
+				  //oSQL = "select * from areas_wm_simple limit 3"
+				  geotype = "polygon";
+				  
+				var simpleJson = {
+					  "type": "esriSFS",
+					  "style": "esriSFSSolid",
+					  "color": [115,76,0,255],
+						"outline": {
+						 "type": "esriSLS",
+						 "style": "esriSLSSolid",
+						 "color": [110,110,110,255],
+						 "width": 1
+						 }
+					}
+				
+				symbol = new SYM(simpleJson);
+				//symbol.setColor(new Color([150, 150, 150, 0.5]));
+				
+				renderer = new ClassBreaksRenderer(symbol, "p_recent_mortality");
+				renderer.addBreak(0, 2, new SYM().setColor(new Color([56, 168, 0, 1])).setOutline(null));
+				renderer.addBreak(2, 5, new SYM().setColor(new Color([139, 209, 0, 1])).setOutline(null));
+				renderer.addBreak(5, 10, new SYM().setColor(new Color([255, 255, 0, 1])).setOutline(null));
+				renderer.addBreak(10, 20, new SYM().setColor(new Color([255, 128, 0, 1])).setOutline(null));
+				renderer.addBreak(20, 100, new SYM().setColor(new Color([255, 0, 0, 1])).setOutline(null));
+				
+				//renderer = new SimpleRenderer(symbol);
+				
+				}
+				
+				
+		
+				var dynamicLayerInfos = [];
+				var dynamicLayerInfo = new aDynamicLayerInfo();
+				dynamicLayerInfo.id = 1;
+				dynamicLayerInfo.name = "FRRP";
+				
+				dataSource = new QueryDataSource();
+				dataSource.workspaceId = "frrp";
+				dataSource.geometryType = geotype;
+				dataSource.query = oSQL;
+				dataSource.oidFields = ["id"] 
+				dataSource.spatialReference = new SpatialReference({wkid: 3857});
+	
+				layerSource = new LayerDataSource();
+				layerSource.dataSource = dataSource;
+				dynamicLayerInfo.source = layerSource;
+				dynamicLayerInfos.push(dynamicLayerInfo);
+	
+				
+				mainlayer.setDynamicLayerInfos(dynamicLayerInfos);
+				
+				console.log(oSQL);
+				
+
 		
 				alayerDrawingOptions = [];
 		
